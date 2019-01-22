@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Module1.Data;
 using Module1.Models;
+using Module1.Services;
 
 namespace Module1.Controllers
 {
@@ -13,11 +14,12 @@ namespace Module1.Controllers
     [ApiController]
     public class Product2Controller : ControllerBase
     {
-        private ProductDbContext productDbContext;
+        private IProduct productRepository;
 
-        public Product2Controller(ProductDbContext _productDbContext)
+        // check built-in dependency injection on "Startup.cs"
+        public Product2Controller(IProduct _product)
         {
-            productDbContext = _productDbContext;
+            productRepository = _product;
         }
 
         // GET: api/Product2
@@ -28,12 +30,14 @@ namespace Module1.Controllers
         public IEnumerable<Product> Get(int? pageNumber, int? pageSize, string sortPrice, string searchProduct)
         {
             IQueryable<Product> products;
-            
-            // searching
-            products = productDbContext.Products.Where(x => x.ProductName.StartsWith(searchProduct));
 
+            // searching
+            if (!string.IsNullOrEmpty(searchProduct))
+                products = productRepository.GetProducts().Where(x => x.ProductName.StartsWith(searchProduct));
+            else
+                products = productRepository.GetProducts();
             // sorting
-            switch(sortPrice)
+            switch (sortPrice)
             {
                 case "desc":
                     products = products.OrderByDescending(p => p.ProductPrice);
@@ -56,10 +60,10 @@ namespace Module1.Controllers
         }
 
         // GET: api/Product2/5
-        [HttpGet("{id}", Name = "Get")]
+        [HttpGet("{id}")]
         public IActionResult Get(int id)
         {
-            var product = productDbContext.Products.SingleOrDefault(x => x.ProductId == id);
+            var product = productRepository.GetProduct(id);
             if (product == null)
             {
                 return NotFound("No record found...");
@@ -75,9 +79,7 @@ namespace Module1.Controllers
             {
                 return BadRequest(ModelState);
             }
-            productDbContext.Products.Add(value);
-            productDbContext.SaveChanges(true);
-
+            productRepository.AddProduct(value);
             return StatusCode(StatusCodes.Status201Created);
         }
 
@@ -94,8 +96,7 @@ namespace Module1.Controllers
                 return BadRequest();
             }
 
-            productDbContext.Products.Update(value);
-            productDbContext.SaveChanges(true);
+            productRepository.UpdateProduct(value);
 
             return Ok(value);
         }
@@ -104,14 +105,8 @@ namespace Module1.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var product = productDbContext.Products.SingleOrDefault(x => x.ProductId == id);
-            if (product == null)
-            {
-                return NotFound("No record found...");
-            }
-            productDbContext.Products.Remove(product);
-            productDbContext.SaveChanges(true);
-            return Ok("Product Deleted....");
+            productRepository.DeleteProduct(id);
+            return Ok("Product Deleted...");
         }
     }
 }
