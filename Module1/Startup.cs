@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Module1.Data;
 using Module1.Services;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace Module1
 {
@@ -48,11 +49,13 @@ namespace Module1
             services.AddMvc().AddXmlSerializerFormatters();
 
             // entiry framework connection string
-            // var connString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=ProductsDb;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
-            var connString = Configuration.GetConnectionString("ProductDbContext"); // azure
+            var connString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=ProductsDb;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+            // var connString = Configuration.GetConnectionString("ProductDbContext"); // azure
 
             services.AddDbContext<ProductDbContext>(option => option.UseSqlServer(connString));
 
+            // documentation
+            services.AddSwaggerGen(x => x.SwaggerDoc("v1", new Info { Title = "Product Api", Version = "v1" }));
             
         }
 
@@ -67,7 +70,10 @@ namespace Module1
             {
                 app.UseHsts();
             }
-            
+
+            app.UseSwagger();
+            app.UseSwaggerUI(x => x.SwaggerEndpoint("/swagger/v1/swagger.json", "API for product"));
+
             app.UseHttpsRedirection();
             app.UseMvc();
             productDbContext.Database.EnsureCreated();
